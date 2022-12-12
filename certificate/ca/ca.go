@@ -13,7 +13,7 @@ import (
 	"encoding/pem"
 	"fmt"
 
-	"github.com/bastionzero/gotoolkit/certificate/template"
+	"github.com/bastionzero/go-toolkit/certificate/template"
 
 	"github.com/bastionzero/keysplitting"
 )
