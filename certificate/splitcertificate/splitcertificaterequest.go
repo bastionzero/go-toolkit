@@ -54,12 +54,12 @@ func (c *SplitSignCertificate) x509() (*x509.Certificate, error) {
 	return x509.ParseCertificate(certBytes)
 }
 
-func New(rand io.Reader, template, parent *x509.Certificate, priv *keysplitting.SplitPrivateKey) (*SplitSignCertificate, error) {
+func New(rand io.Reader, template, parent *x509.Certificate, pub *rsa.PublicKey, priv *keysplitting.SplitPrivateKey) (*SplitSignCertificate, error) {
 	if err := check(template); err != nil {
 		return nil, fmt.Errorf("provided certificate template did not conform to RFC standards: %s", err)
 	}
 
-	tbs, err := build(template, parent, priv.PublicKey)
+	tbs, err := build(template, parent, pub)
 	if err != nil {
 		return nil, fmt.Errorf("failed to build certificate to be signed: %s", err)
 	}
@@ -91,7 +91,7 @@ func (s *SplitSignCertificate) VerifySignature(pub *rsa.PublicKey) error {
 	return nil
 }
 
-func (s *SplitSignCertificate) Sign(rand io.Reader, parent *x509.Certificate, priv *keysplitting.SplitPrivateKey) error {
+func (s *SplitSignCertificate) Sign(rand io.Reader, parent *x509.Certificate, pub *rsa.PublicKey, priv *keysplitting.SplitPrivateKey) error {
 	cert, err := s.x509()
 	if err != nil {
 		return fmt.Errorf("this certificate is malformed: %s", err)
@@ -101,7 +101,7 @@ func (s *SplitSignCertificate) Sign(rand io.Reader, parent *x509.Certificate, pr
 		return fmt.Errorf("provided certificate template did not conform to RFC standards: %s", err)
 	}
 
-	tbs, err := build(cert, parent, priv.PublicKey)
+	tbs, err := build(cert, parent, pub)
 	if err != nil {
 		return err
 	}
