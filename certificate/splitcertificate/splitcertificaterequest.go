@@ -92,7 +92,7 @@ func (s *SplitSignCertificate) VerifySignature(pub *rsa.PublicKey) error {
 }
 
 func (s *SplitSignCertificate) Sign(rand io.Reader, parent *x509.Certificate, pub *rsa.PublicKey, priv *keysplitting.SplitPrivateKey) error {
-	cert, err := s.x509()
+	cert, err := s.X509()
 	if err != nil {
 		return fmt.Errorf("this certificate is malformed: %s", err)
 	}
