@@ -92,20 +92,7 @@ func (s *SplitSignCertificate) VerifySignature(pub *rsa.PublicKey) error {
 }
 
 func (s *SplitSignCertificate) Sign(rand io.Reader, parent *x509.Certificate, pub *rsa.PublicKey, priv *keysplitting.SplitPrivateKey) error {
-	cert, err := s.X509()
-	if err != nil {
-		return fmt.Errorf("this certificate is malformed: %s", err)
-	}
-
-	if err := check(cert); err != nil {
-		return fmt.Errorf("provided certificate template did not conform to RFC standards: %s", err)
-	}
-
-	tbs, err := build(cert, parent, pub)
-	if err != nil {
-		return err
-	}
-	signed := tbs.Raw // LUCIE: I think this is a pointer not a copy
+	signed := s.TBSCertificate.Raw // LUCIE: I think this is a pointer not a copy
 
 	if hashFunc != 0 {
 		h := hashFunc.New()
