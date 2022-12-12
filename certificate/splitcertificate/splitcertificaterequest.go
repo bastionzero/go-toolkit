@@ -45,7 +45,7 @@ func (c *SplitSignCertificate) Bytes() ([]byte, error) {
 	return asn1.Marshal(*c)
 }
 
-func (c *SplitSignCertificate) x509() (*x509.Certificate, error) {
+func (c *SplitSignCertificate) X509() (*x509.Certificate, error) {
 	certBytes, err := c.Bytes()
 	if err != nil {
 		return nil, err
