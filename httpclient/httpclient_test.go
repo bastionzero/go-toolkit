@@ -12,7 +12,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"github.com/bastionzero/gotoolkit/mocks"
+	"github.com/bastionzero/go-toolkit/httpclient/mock"
 )
 
 func TestHttpClient(t *testing.T) {
@@ -22,7 +22,7 @@ func TestHttpClient(t *testing.T) {
 
 var _ = Describe("HttpClient", func() {
 	var client *HttpClient
-	var server *mocks.MockServer
+	var server *mock.MockServer
 
 	ctx := context.Background()
 
@@ -68,7 +68,7 @@ var _ = Describe("HttpClient", func() {
 			}
 
 			BeforeEach(func() {
-				server = mocks.NewMockServer(mocks.MockHandler{
+				server = mock.NewMockServer(mock.MockHandler{
 					Endpoint:    "/",
 					HandlerFunc: verifyParams,
 				})
@@ -104,7 +104,7 @@ var _ = Describe("HttpClient", func() {
 			}
 
 			BeforeEach(func() {
-				server = mocks.NewMockServer(mocks.MockHandler{
+				server = mock.NewMockServer(mock.MockHandler{
 					Endpoint:    "/",
 					HandlerFunc: verifyHeaders,
 				})
@@ -123,7 +123,7 @@ var _ = Describe("HttpClient", func() {
 		When("Creating with backoff", func() {
 			var err error
 			var retryCount int
-			var server *mocks.MockServer
+			var server *mock.MockServer
 
 			backoffParams := backoff.NewExponentialBackOff()
 			backoffParams.MaxInterval = 5 * time.Minute
@@ -139,7 +139,7 @@ var _ = Describe("HttpClient", func() {
 			}
 
 			BeforeEach(func() {
-				server = mocks.NewMockServer(mocks.MockHandler{
+				server = mock.NewMockServer(mock.MockHandler{
 					Endpoint:    "/",
 					HandlerFunc: handleGet,
 				})
@@ -184,7 +184,7 @@ var _ = Describe("HttpClient", func() {
 			}
 
 			BeforeEach(func() {
-				server = mocks.NewMockServer(mocks.MockHandler{
+				server = mock.NewMockServer(mock.MockHandler{
 					Endpoint:    "/",
 					HandlerFunc: handlePost,
 				})
@@ -216,7 +216,7 @@ var _ = Describe("HttpClient", func() {
 			}
 
 			BeforeEach(func() {
-				server = mocks.NewMockServer(mocks.MockHandler{
+				server = mock.NewMockServer(mock.MockHandler{
 					Endpoint:    "/",
 					HandlerFunc: handlePatch,
 				})
@@ -248,7 +248,7 @@ var _ = Describe("HttpClient", func() {
 			}
 
 			BeforeEach(func() {
-				server = mocks.NewMockServer(mocks.MockHandler{
+				server = mock.NewMockServer(mock.MockHandler{
 					Endpoint:    "/",
 					HandlerFunc: handleGet,
 				})
@@ -281,7 +281,7 @@ var _ = Describe("HttpClient", func() {
 			}
 
 			BeforeEach(func() {
-				server = mocks.NewMockServer(mocks.MockHandler{
+				server = mock.NewMockServer(mock.MockHandler{
 					Endpoint:    "/",
 					HandlerFunc: delayed,
 				})
