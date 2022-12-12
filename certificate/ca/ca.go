@@ -12,7 +12,8 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
-	"gotoolkit/certificate/template"
+
+	"github.com/bastionzero/gotoolkit/certificate/template"
 
 	"github.com/bastionzero/keysplitting"
 )

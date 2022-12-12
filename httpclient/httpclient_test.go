@@ -12,7 +12,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"gotoolkit/mocks"
+	"github.com/bastionzero/gotoolkit/mocks"
 )
 
 func TestHttpClient(t *testing.T) {
