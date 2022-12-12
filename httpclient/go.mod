@@ -1,6 +1,8 @@
-module gotoolkit/httpclient
+module github.com/bastionzero/gotoolkit/httpclient
 
 go 1.18
+
+replace github.com/bastionzero/gotoolkit => ../
 
 require (
 	github.com/cenkalti/backoff/v4 v4.2.0
