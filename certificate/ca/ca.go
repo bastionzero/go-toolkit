@@ -87,6 +87,10 @@ func Load(caPEM string, keyPEM string) (*CA, error) {
 	}, nil
 }
 
+func (c *CA) SplitPrivateKey() *keysplitting.SplitPrivateKey {
+	return c.splitKey
+}
+
 func (c *CA) PrivateKey() *rsa.PrivateKey {
 	return c.privateKey
 }
