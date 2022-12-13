@@ -112,3 +112,44 @@ func (c *CA) PEM() (string, string, error) {
 
 	return certPEM, agentKeyPem, nil
 }
+
+func (c *CA) GenerateServerCertificate(hostname string) (string, string, error) {
+	// Check that parent is allowed to sign
+	if c.PrivateKey() == nil {
+		return "", "", fmt.Errorf("this certificate no longer has access to its full key and can longer issue certificates unilaterally")
+	}
+
+	serverCert, err := template.ServerCertificate(hostname, template.Year)
+	if err != nil {
+		return "", "", fmt.Errorf("failed to generate new server certificate from our template: %s", err)
+	}
+
+	// generate rsa key pair
+	certKey, err := rsa.GenerateKey(rand.Reader, rsaKeyLength)
+	if err != nil {
+		return "", "", fmt.Errorf("we fucked up generating the key: %s", err)
+	}
+
+	// Sign the certificate
+	derBytes, err := x509.CreateCertificate(rand.Reader, serverCert, c.X509(), &certKey.PublicKey, c.privateKey)
+	if err != nil {
+		return "", "", fmt.Errorf("we fucked up generating the certificate: %s", err)
+	}
+
+	cert, err := x509.ParseCertificate(derBytes)
+	if err != nil {
+		return "", "", fmt.Errorf("golang fucked up and did not give us a der-encoded certficate: %s", err)
+	}
+
+	certPEM, err := certificate.EncodeCertificatePEM(cert)
+	if err != nil {
+		return "", "", err
+	}
+
+	keyPEM, err := certificate.EncodeRSAPrivateKeyPEM(certKey)
+	if err != nil {
+		return "", "", err
+	}
+
+	return certPEM, keyPEM, nil
+}
