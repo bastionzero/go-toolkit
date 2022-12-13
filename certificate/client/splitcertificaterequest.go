@@ -1,10 +1,11 @@
 /*
 Lines in this file taken from source code have references to the original lines
 */
-package splitcertificate
+package client
 
 import (
 	"bytes"
+	"crypto"
 	"crypto/rsa"
 	"crypto/sha1"
 	"crypto/x509"
@@ -13,12 +14,14 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 
+	"github.com/bastionzero/go-toolkit/certificate"
 	"github.com/bastionzero/keysplitting"
 )
 
 var (
+	hashFunc = crypto.SHA256
+
 	// ref: https://cs.opensource.google/go/go/+/refs/tags/go1.19.4:src/crypto/x509/x509.go;l=1403-1407;drc=7c7cd56870ba617f964014fa4694e9b61e29cf97
 	privKeyAlgo = pkix.AlgorithmIdentifier{
 		Algorithm:  oidSignatureSHA256WithRSA,
@@ -35,17 +38,17 @@ var (
 )
 
 // This structure reflects the ASN.1 structure of X.509 certificates
-type SplitSignCertificate struct {
+type SplitClientCertificate struct {
 	TBSCertificate     tbsCertificate
 	SignatureAlgorithm pkix.AlgorithmIdentifier
 	SignatureValue     asn1.BitString
 }
 
-func (c *SplitSignCertificate) Bytes() ([]byte, error) {
+func (c *SplitClientCertificate) Bytes() ([]byte, error) {
 	return asn1.Marshal(*c)
 }
 
-func (c *SplitSignCertificate) X509() (*x509.Certificate, error) {
+func (c *SplitClientCertificate) X509() (*x509.Certificate, error) {
 	certBytes, err := c.Bytes()
 	if err != nil {
 		return nil, err
@@ -54,36 +57,47 @@ func (c *SplitSignCertificate) X509() (*x509.Certificate, error) {
 	return x509.ParseCertificate(certBytes)
 }
 
-func New(rand io.Reader, template, parent *x509.Certificate, pub *rsa.PublicKey, priv *keysplitting.SplitPrivateKey) (*SplitSignCertificate, error) {
-	if err := check(template); err != nil {
+func (s *SplitClientCertificate) PEM() (string, error) {
+	if xcert, err := s.X509(); err != nil {
+		return "", err
+	} else {
+		return certificate.EncodeCertificatePEM(xcert)
+	}
+}
+
+func Generate(rand io.Reader, template, parent *x509.Certificate, pub *rsa.PublicKey, priv *keysplitting.SplitPrivateKey) (*SplitClientCertificate, error) {
+	if err := checkClaims(template); err != nil {
 		return nil, fmt.Errorf("provided certificate template did not conform to RFC standards: %s", err)
 	}
 
-	tbs, err := build(template, parent, pub)
+	tbs, err := buildPreSignedCertificate(template, parent, pub)
 	if err != nil {
 		return nil, fmt.Errorf("failed to build certificate to be signed: %s", err)
 	}
 
-	signed := tbs.Raw
-	if hashFunc != 0 {
-		h := hashFunc.New()
-		h.Write(signed)
-		signed = h.Sum(nil)
+	if hashFunc == 0 {
+		return nil, fmt.Errorf("no hash function was specified")
 	}
+
+	// Hash the contents of our to-be-signed certificate
+	signed := tbs.Raw
+	h := hashFunc.New()
+	h.Write(signed)
+	signed = h.Sum(nil)
 
 	signature, err := keysplitting.SignFirst(rand, priv, hashFunc, signed)
 	if err != nil {
 		return nil, fmt.Errorf("failed to sign certificate: %s", err)
 	}
 
-	return &SplitSignCertificate{
+	return &SplitClientCertificate{
 		*tbs,
 		privKeyAlgo,
 		asn1.BitString{Bytes: signature, BitLength: len(signature) * 8},
 	}, nil
 }
 
-func (s *SplitSignCertificate) VerifySignature(pub *rsa.PublicKey) error {
+func (s *SplitClientCertificate) VerifySignature(pub *rsa.PublicKey) error {
 	// Check the signature to ensure the crypto.Signer behaved correctly.
 	if err := checkSignature(x509.SHA256WithRSA, s.TBSCertificate.Raw, s.SignatureValue.Bytes, pub, true); err != nil {
 		return fmt.Errorf("x509: signature over certificate returned by signer is invalid: %w", err)
@@ -91,53 +105,28 @@ func (s *SplitSignCertificate) VerifySignature(pub *rsa.PublicKey) error {
 	return nil
 }
 
-func (s *SplitSignCertificate) Sign(rand io.Reader, parent *x509.Certificate, pub *rsa.PublicKey, priv *keysplitting.SplitPrivateKey) error {
-	signed := s.TBSCertificate.Raw // LUCIE: I think this is a pointer not a copy
-
-	if hashFunc != 0 {
-		h := hashFunc.New()
-		h.Write(signed)
-		signed = h.Sum(nil)
+func (s *SplitClientCertificate) Sign(rand io.Reader, parent *x509.Certificate, pub *rsa.PublicKey, priv *keysplitting.SplitPrivateKey) error {
+	if hashFunc == 0 {
+		return fmt.Errorf("no hash function was specified")
 	}
+
+	// Hash the contents of our to-be-signed certificate
+	signed := s.TBSCertificate.Raw
+	h := hashFunc.New()
+	h.Write(signed)
+	signed = h.Sum(nil)
 
 	signature, err := keysplitting.SignNext(rand, priv, hashFunc, signed, keysplitting.Addition, s.SignatureValue.Bytes)
 	if err != nil {
 		return fmt.Errorf("failed to additionally sign our certificate: %s", err)
 	}
 
-	// var signerOpts crypto.SignerOpts = hashFunc
-
-	// key, ok := priv.(crypto.Signer)
-	// if !ok {
-	// 	return nil, errors.New("x509: certificate private key does not implement crypto.Signer")
-	// }
-
-	// var signature []byte
-	// signature, err = key.Sign(rand, signed, signerOpts)
-	// if err != nil {
-	// 	return nil, err
-	// }
-
 	s.SignatureValue = asn1.BitString{Bytes: signature, BitLength: len(signature) * 8}
-
-	// signedCert, err := asn1.Marshal(SplitSignCertificate{
-	// 	*tbs,
-	// 	privKeyAlgo,
-	// 	asn1.BitString{Bytes: signature, BitLength: len(signature) * 8},
-	// })
-	// if err != nil {
-	// 	return err
-	// }
-
-	// // Check the signature to ensure the crypto.Signer behaved correctly.
-	// if err := checkSignature(x509.SHA256WithRSA, c.Raw, signature, key.Public(), true); err != nil {
-	// 	return nil, fmt.Errorf("x509: signature over certificate returned by signer is invalid: %w", err)
-	// }
 
 	return nil
 }
 
-func check(template *x509.Certificate) error {
+func checkClaims(template *x509.Certificate) error {
 	if template.SerialNumber == nil {
 		return errors.New("x509: no SerialNumber given")
 	}
@@ -158,17 +147,17 @@ func check(template *x509.Certificate) error {
 	return nil
 }
 
-func build(template, parent *x509.Certificate, pub *rsa.PublicKey) (*tbsCertificate, error) {
+func buildPreSignedCertificate(template, parent *x509.Certificate, pub *rsa.PublicKey) (*tbsCertificate, error) {
 	publicKeyBytes := x509.MarshalPKCS1PublicKey(pub)
 
 	asn1Issuer, err := subjectBytes(parent)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to parse parent certificate: %s", err)
 	}
 
 	asn1Subject, err := subjectBytes(template)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to parse template certificate: %s", err)
 	}
 
 	authorityKeyId := template.AuthorityKeyId
@@ -205,8 +194,7 @@ func build(template, parent *x509.Certificate, pub *rsa.PublicKey) (*tbsCertific
 
 	tbsBytes, err := asn1.Marshal(*tbs)
 	if err != nil {
-		log.Printf("aha it's probably from here")
-		return nil, err
+		return nil, fmt.Errorf("failed to encode our to-be-signed certificate: %s", err)
 	}
 	tbs.Raw = tbsBytes
 
