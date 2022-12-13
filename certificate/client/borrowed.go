@@ -1,7 +1,7 @@
 /*
 Code taken verbatim from the golang source code
 */
-package splitcertificate
+package client
 
 import (
 	"crypto"
@@ -115,8 +115,6 @@ var (
 // emptyASN1Subject is the ASN.1 DER encoding of an empty Subject, which is
 // just an empty SEQUENCE.
 var emptyASN1Subject = []byte{0x30, 0}
-
-var hashFunc = crypto.SHA256
 
 type tbsCertificate struct {
 	Raw                asn1.RawContent
