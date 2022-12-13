@@ -1,7 +1,7 @@
 /*
 Lines in this file taken from source code have references to the original lines
 */
-package client
+package splitclient
 
 import (
 	"bytes"

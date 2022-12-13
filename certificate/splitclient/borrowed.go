@@ -1,7 +1,7 @@
 /*
 Code taken verbatim from the golang source code
 */
-package client
+package splitclient
 
 import (
 	"crypto"
