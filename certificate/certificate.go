@@ -14,7 +14,11 @@ func EncodeRSAPrivateKeyPEM(key *rsa.PrivateKey) (string, error) {
 		Type:  "RSA PRIVATE KEY",
 		Bytes: x509.MarshalPKCS1PrivateKey(key),
 	})
-	return keyPEM.String(), fmt.Errorf("failed to pem-encode RSA private key: %s", err)
+	if err != nil {
+		return "", fmt.Errorf("failed to pem-encode RSA private key: %s", err)
+	}
+
+	return keyPEM.String(), nil
 }
 
 func EncodeCertificatePEM(cert *x509.Certificate) (string, error) {
@@ -23,6 +27,9 @@ func EncodeCertificatePEM(cert *x509.Certificate) (string, error) {
 		Type:  "CERTIFICATE",
 		Bytes: cert.Raw,
 	})
+	if err != nil {
+		return "", fmt.Errorf("failed to pem-encode x509 certificate: %s", err)
+	}
 
-	return certPEM.String(), fmt.Errorf("failed to pem-encode x509 certificate: %s", err)
+	return certPEM.String(), nil
 }
