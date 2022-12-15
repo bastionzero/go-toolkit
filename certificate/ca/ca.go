@@ -24,11 +24,11 @@ const (
 
 type CA struct {
 	certficate *x509.Certificate
-	splitKey   *keysplitting.SplitPrivateKey
+	splitKey   *keysplitting.PrivateKeyShard
 	privateKey *rsa.PrivateKey
 }
 
-func Generate() (*CA, *keysplitting.SplitPrivateKey, error) {
+func Generate() (*CA, *keysplitting.PrivateKeyShard, error) {
 	// Generate our certificate authority template
 	ca, err := template.CA(template.BastionZeroIdentity, template.Year)
 	if err != nil {
@@ -87,7 +87,7 @@ func Load(caPEM string, keyPEM string) (*CA, error) {
 	}, nil
 }
 
-func (c *CA) SplitPrivateKey() *keysplitting.SplitPrivateKey {
+func (c *CA) SplitPrivateKey() *keysplitting.PrivateKeyShard {
 	return c.splitKey
 }
 
