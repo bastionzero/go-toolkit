@@ -65,7 +65,7 @@ func (s *SplitClientCertificate) PEM() (string, error) {
 	}
 }
 
-func Generate(rand io.Reader, template, parent *x509.Certificate, pub *rsa.PublicKey, priv *keysplitting.SplitPrivateKey) (*SplitClientCertificate, error) {
+func Generate(rand io.Reader, template, parent *x509.Certificate, pub *rsa.PublicKey, priv *keysplitting.PrivateKeyShard) (*SplitClientCertificate, error) {
 	if err := checkClaims(template); err != nil {
 		return nil, fmt.Errorf("provided certificate template did not conform to RFC standards: %s", err)
 	}
@@ -105,7 +105,7 @@ func (s *SplitClientCertificate) VerifySignature(pub *rsa.PublicKey) error {
 	return nil
 }
 
-func (s *SplitClientCertificate) Sign(rand io.Reader, parent *x509.Certificate, pub *rsa.PublicKey, priv *keysplitting.SplitPrivateKey) error {
+func (s *SplitClientCertificate) Sign(rand io.Reader, parent *x509.Certificate, pub *rsa.PublicKey, priv *keysplitting.PrivateKeyShard) error {
 	if hashFunc == 0 {
 		return fmt.Errorf("no hash function was specified")
 	}
@@ -116,7 +116,7 @@ func (s *SplitClientCertificate) Sign(rand io.Reader, parent *x509.Certificate, 
 	h.Write(signed)
 	signed = h.Sum(nil)
 
-	signature, err := keysplitting.SignNext(rand, priv, hashFunc, signed, keysplitting.Addition, s.SignatureValue.Bytes)
+	signature, err := keysplitting.SignNext(rand, priv, hashFunc, signed, s.SignatureValue.Bytes)
 	if err != nil {
 		return fmt.Errorf("failed to additionally sign our certificate: %s", err)
 	}
