@@ -19,7 +19,7 @@ import (
 )
 
 const (
-	rsaKeyLength = 4096
+	rsaKeyLength = 2048
 )
 
 type CA struct {
